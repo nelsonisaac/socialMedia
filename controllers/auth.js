@@ -6,7 +6,7 @@ import User from "../models/User.js";
 
 //We are taking the typed values by user, which are the in the req paramter and giving names to each of the field typed like firstName,lastName
 //this is mapping the front end typed details to the various fields like firstName,lastName which are present in the req.body
-export const register = async(req,res)=>{
+export const register = async(req,res) => {
     try {
         const {
             firstName,
@@ -46,5 +46,29 @@ export const register = async(req,res)=>{
 
     } catch (err) {
          res.status(500).json({error: err.message});
+    }
+}
+
+export const login = async(req,res) => {
+    try {
+        const { email , password} = req.body;
+        const user = await User.findOne({email: email});
+        if(!user){
+            return res.status(400).json({msg: "User not found. " });
+        }       
+        const isMatch = await bcrypt.compare(password, user.password );
+        if(!isMatch){
+            return res.status(400).json({message: "Invalid password "});
+        }
+
+        //When loggin in for the first time, the user send JWT_SECRET string so that the server may use this to create/sign a token which it sends to user, whihc helps user to gain access nect time without any credentials
+        
+        let secKey = process.env.JWT_SECRET;
+        const token = jwt.sign({id: user._id}, secKey);
+        delete user.password;
+        res.status(200).json({token, user});
+
+    } catch (error) {
+        res.status(400).json({error: error.message});
     }
 }
